@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html >
+<head>
+
+    <title>Task Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f7f7f7;
+        }
+
+        .header {
+            background-color: #333;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .sidebar {
+            width: 200px;
+            background-color: #555;
+            position: fixed;
+            height: 100%;
+            overflow: auto;
+        }
+
+        .sidebar a {
+            display: block;
+            color: #fff;
+            padding: 16px;
+            text-decoration: none;
+        }
+
+        .sidebar a:hover {
+            background-color: #444;
+        }
+
+        .content {
+            margin-left: 200px;
+            padding: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #fff;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fefefe;
+            padding: 20px;
+            border: 1px solid #888;
+            z-index: 999;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+            width: 400px; /* Increased width */
+            max-width: 90%; /* Limited maximum width */
+        }
+
+        .popup h2 {
+            margin-top: 0;
+            color: #333;
+            text-align: center;
+        }
+
+        .popup label {
+            display: block;
+            margin-bottom: 10px;
+            color: #555;
+        }
+
+        .popup input[type="text"],
+        .popup textarea,
+        .popup select {
+            width: calc(100% - 20px);
+            padding: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px; /* Increased font size */
+        }
+
+        .popup button[type="submit"] {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px; /* Increased font size */
+            width: 100%; /* Make button full width */
+            box-sizing: border-box; /* Ensure padding and border are included in width */
+        }
+
+        .popup button[type="submit"]:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Task Manager</h1>
+    {% if username %}
+        <p>Hello, {{ username }}! You are already logged in.</p> 
+        <div class="sidebar">
+            <a href="#" id="add-task-btn">Add Task</a>
+            <a href="#" id="add-project-btn">Add Project</a>
+            <a href="#" id="dashboard-btn">Dashboard</a>
+            <a href="/logout">Logout</a>
+            {% else %}
+                <p>Please <a href="/login">login</a> to access the home page.</p> 
+                <p>Please <a href="/register">Register</a> to access the home page.</p> 
+
+                {% endif %}
+        </div>
+        
+        <div class="content">
+            <!-- Task table -->
+            <div id="task-table" style="display: none;">
+                <h2>Task Details</h2>
+                <table>
+                    <tr>
+                        <th>Task Name</th>
+                        <th>Category</th>
+                        <th>Description</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Completed</th>
+                        <th>Action</th>
+                    </tr>
+                    <tbody id="task-table-body">
+                        {% for task in tasks %}
+                        <tr data-task-id="{{ task['id'] }}">
+                            <td>{{ task['name'] }}</td>
+                            <td>{{ task['category'] }}</td>
+                            <td>{{ task['description'] }}</td>
+                            <td>{{ task['start_date'] }}</td>
+                            <td>{{ task['end_date'] }}</td>
+                            <td>{{ task['completed'] }}</td>
+                            <td>
+                                <button class="delete-btn" data-task-id="{{ task['id'] }}">Delete</button>
+                                <button class="complete-btn" data-task-id="{{ task['id'] }}" data-completed="{{ task['completed'] }}">
+                                    {% if task['completed'] == 'Yes' %}
+                                    Mark Incomplete
+                                    {% else %}
+                                    Mark Complete
+                                    {% endif %}
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        
+            <!-- Project table -->
+            <div id="project-table" style="display: none;">
+                <h2>Project Details</h2>
+                <table>
+                    <tr>
+                        <th>Project Name</th>
+                        <th>Task Name</th>
+                        <th>Category</th>
+                        <th>Description</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Completed</th>
+                        <th>Action</th>
+                    </tr>
+                    <tbody id="project-table-body">
+                        {% for project in projects %}
+                        <tr data-project-id="{{ project['id'] }}">
+                            <td>{{ project['name'] }}</td>
+                            <td>{{ project['task_name'] }}</td>
+                            <td>{{ project['task_category'] }}</td>
+                            <td>{{ project['task_description'] }}</td>
+                            <td>{{ project['start_date'] }}</td>
+                            <td>{{ project['end_date'] }}</td>
+                            <td>{{ project['completed'] }}</td>
+                            <td>
+                                <button class="delete-project-btn" data-project-id="{{ project['id'] }}">Delete</button>
+                                <button class="complete-project-btn" data-project-id="{{ project['id'] }}" data-completed="{{ project['completed'] }}">
+                                    {% if project['completed'] == 'Yes' %}
+                                    Mark Incomplete
+                                    {% else %}
+                                    Mark Complete
+                                    {% endif %}
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        
+            <!-- Task form popup -->
+            <div id="task-form-popup" class="popup" style="display: none;">
+                <form id="task-form" action="/" method="POST">
+                    <h2>Add Task</h2>
+                    <label for="task_name">Task Name:</label>
+                    <input type="text" id="task_name" name="task_name" required>
+                    <label for="task_category">Task Category:</label>
+                    <select id="task_category" name="task_category">
+                        <option value="office">Office Task</option>
+                        <option value="home">Home Task</option>
+                    </select>
+                    <label for="task_description">Task Description:</label>
+                    <textarea id="task_description" name="task_description" required></textarea>
+                    <label for="start_date">Start Date:</label>
+                    <input type="date" id="start_date" name="start_date" required>
+                    <label for="end_date">End Date:</label>
+                    <input type="date" id="end_date" name="end_date" required>
+                    <button type="submit">Add Task</button>
+                </form>
+            </div>
+        
+            <!-- Project form popup -->
+            <div id="project-form-popup" class="popup" style="display: none;">
+                <form action="/" method="POST">
+                    <h2>Add Project</h2>
+                    <label for="project_name">Project Name:</label>
+                    <input type="text" id="project_name" name="project_name" required>
+                
+                    <label for="task_name">Task Name:</label>
+                    <input type="text" id="task_name" name="task_name[]" required>
+        
+                    <label for="task_category">Task Category:</label>
+                    <select id="task_category" name="task_category">
+                        <option value="office">Office Task</option>
+                        <option value="home">Home Task</option>
+                    </select>
+                        
+                    <label for="task_description">Task Description:</label>
+                    <textarea id="task_description" name="task_description" required></textarea>
+                    
+                    <label for="start_date">Start Date:</label>
+                    <input type="date" id="start_date" name="start_date" required>
+                    
+                    <label for="end_date">End Date:</label>
+                    <input type="date" id="end_date" name="end_date" required>
+                    
+                    <button type="submit">Add Project</button>
+                </form>
+            </div>
+        </div>
+        
+        <script>
+            // Toggle visibility of popups
+            document.getElementById("add-task-btn").addEventListener("click", function() {
+                togglePopup("task-form-popup");
+            });
+        
+            document.getElementById("add-project-btn").addEventListener("click", function() {
+                togglePopup("project-form-popup");
+            });
+        
+            document.getElementById("dashboard-btn").addEventListener("click", function() {
+                toggleDashboard();
+            });
+        
+            function togglePopup(popupId) {
+                var popup = document.getElementById(popupId);
+                if (popup.style.display === "none" || popup.style.display === "") {
+                    popup.style.display = "block";
+                } else {
+                    popup.style.display = "none";
+                }
+            }
+        
+            function toggleDashboard() {
+                var taskTable = document.getElementById("task-table");
+                var projectTable = document.getElementById("project-table");
+                if (taskTable.style.display === "none") {
+                    taskTable.style.display = "block";
+                    projectTable.style.display = "block";
+                } else {
+                    taskTable.style.display = "none";
+                    projectTable.style.display = "none";
+                }
+            }
+        
+            // Handle delete button click for tasks
+            document.querySelectorAll('.delete-btn').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    var taskId = this.dataset.taskId;
+                    var row = this.parentNode.parentNode;
+                    deleteTask(taskId, row);
+                });
+            });
+        
+            // Handle complete button click for tasks
+            document.querySelectorAll('.complete-btn').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    var taskId = this.dataset.taskId;
+                    var completed = this.dataset.completed;
+                    var row = this.parentNode.parentNode;
+                    markTaskComplete(taskId, completed, row);
+                });
+            });
+        
+            // Handle delete button click for projects
+            document.querySelectorAll('.delete-project-btn').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    var projectId = this.dataset.projectId;
+                    var row = this.parentNode.parentNode;
+                    deleteProject(projectId, row);
+                });
+            });
+        
+            // Handle complete button click for projects
+            document.querySelectorAll('.complete-project-btn').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    var projectId = this.dataset.projectId;
+                    var completed = this.dataset.completed;
+                    var row = this.parentNode.parentNode;
+                    markProjectComplete(projectId, completed, row);
+                });
+            });
+        
+            // Function to delete a task
+            function deleteTask(taskId, row) {
+                fetch(`/delete_task/${taskId}`, {
+                    method: 'POST'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Remove the row from the table
+                        row.remove();
+                    } else {
+                        console.error('Failed to delete task');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            }
+        
+            // Function to mark a task as complete/incomplete
+            function markTaskComplete(taskId, completed, row) {
+                var isCompleted = (completed === 'Yes') ? 'No' : 'Yes';
+                fetch(`/mark_task_complete/${taskId}?completed=${isCompleted}`, {
+                    method: 'POST'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Update the completed status in the row
+                        var completedCell = row.cells[5];
+                        completedCell.textContent = isCompleted;
+        
+                        // Update the button text
+                        var button = row.querySelector('.complete-btn');
+                        button.dataset.completed = isCompleted;
+                        button.textContent = (isCompleted === 'Yes') ? 'Mark Incomplete' : 'Mark Complete';
+                    } else {
+                        console.error('Failed to mark task as complete');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            }
+        
+            // Function to delete a project
+            function deleteProject(projectId, row) {
+                fetch(`/delete_project/${projectId}`, {
+                    method: 'POST'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Remove the row from the table
+                        row.remove();
+                    } else {
+                        console.error('Failed to delete project');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            }
+        
+            // Function to mark a project as complete/incomplete
+            function markProjectComplete(projectId, completed, row) {
+                var isCompleted = (completed === 'Yes') ? 'No' : 'Yes';
+                fetch(`/mark_project_complete/${projectId}?completed=${isCompleted}`, {
+                    method: 'POST'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Update the completed status in the row
+                        var completedCell = row.cells[6];
+                        completedCell.textContent = isCompleted;
+        
+                        // Update the button text
+                        var button = row.querySelector('.complete-project-btn');
+                        button.dataset.completed = isCompleted;
+                        button.textContent = (isCompleted === 'Yes') ? 'Mark Incomplete' : 'Mark Complete';
+                    } else {
+                        console.error('Failed to mark project as complete');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            }
+</script>
+       
+</body> 
+</html>
